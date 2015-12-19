@@ -1,0 +1,47 @@
+(page "index.html")
+
+(defn location [e]
+  [(.-clientX e) (.-clientY e)])
+
+(defn start-drag [xy e]
+  (when (-> e .-button zero?)
+    (let [mouse-xy (volatile! (location e))]
+      (letfn [(on-move [e]
+                (let [new-mouse-xy (location e)]
+                  (swap! xy (partial mapv +) (mapv - new-mouse-xy @mouse-xy))
+                  (vreset! mouse-xy new-mouse-xy)))
+              (on-up [e]
+                (when (-> e .-button zero?)
+                  (-> js/window js/jQuery (.off "mousemove" on-move))
+                  (-> js/window js/jQuery (.off "mouseup" on-up))))]
+        (-> js/window js/jQuery (.on "mousemove" on-move))
+        (-> js/window js/jQuery (.on "mouseup" on-up))))))
+
+(defmethod do! :draggable [elem _ [xy]]
+  (elem :mousedown (partial start-drag xy)))
+
+
+(defc xy1 [0 0])
+(defc= xy2 (mapv + [300 300] xy1))
+
+(html
+  (head
+    (link :href "app.css" :rel "stylesheet"))
+  (body
+    (div
+       :draggable [xy1]
+       :css (cell=
+              {:position "absolute"
+               :top (get xy1 1)
+               :left (get xy1 0)
+               :background-color "red"
+               :width 100
+               :height 100}))
+    (div
+       :css (cell=
+              {:position "absolute"
+               :top (get xy2 1)
+               :left (get xy2 0)
+               :background-color "blue"
+               :width 100
+               :height 100}))))
